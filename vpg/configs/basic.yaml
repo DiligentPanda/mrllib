@@ -1,0 +1,22 @@
+exp_fd: "exps/test"
+env_name: 'CartPole-v0'
+batch_size: 1024
+lr: 0.001
+log_fp: # set by config
+rnd_seed: 0
+total_iters: 10000
+load_ckpt: null
+mlp_sizes:
+ - 64
+ - 64
+obs_ndim: 1
+state_shape:
+ - 4
+n_actions: 2
+n_values: null
+metric_capacity: 100
+buffer_capacity: 1024
+gamma: 0.999
+log_freq: 1
+ckpt_freq: 1000
+n_cpus: 8
