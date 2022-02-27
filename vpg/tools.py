@@ -23,6 +23,9 @@ def to_array(tensor:torch.Tensor):
     else:
         raise NotImplementedError
 
+def to_arrays(*data):
+    return [to_array(d)[0] for d in data]
+
 def discount_cumsum(x, discount):
     """
     magic from rllab for computing discounted cumulative sums of vectors.

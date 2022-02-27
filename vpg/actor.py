@@ -35,11 +35,13 @@ class MLPActor(nn.Module):
             dists=self.forward(obs)
             actions=dists.sample(torch.Size([1]))
             actions=actions.squeeze(-1)
-        
+            logprobs=dists.log_prob(actions)
+            assert logprobs.shape==actions.shape
+            
         #self.logger.debug("obs_shape: {},actions_shape:{}".format(obs.shape,actions.shape))
         
         if old_dim!=obs.dim():
             # single sample
             actions=actions.squeeze(0)
-            actions=actions.item()
-        return actions
+            logprobs=logprobs.squeeze(0)
+        return actions,logprobs

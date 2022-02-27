@@ -72,12 +72,20 @@ def mpi_avg(x):
     return mpi_sum(x) / num_procs()
     
 def mpi_min(x):
+    x = np.array(x, dtype=np.float32)
     global_min = mpi_op(np.min(x) if len(x) > 0 else np.inf, op=MPI.MIN)
     return global_min
     
 def mpi_max(x):
+    x = np.array(x, dtype=np.float32)
     global_max = mpi_op(np.max(x) if len(x) > 0 else -np.inf, op=MPI.MAX)
     return global_max      
+
+def mpi_mean(x):
+    x = np.array(x, dtype=np.float32)
+    global_sum, global_n = mpi_sum([np.sum(x), len(x)])
+    mean = global_sum / global_n
+    return mean
     
 def mpi_statistics_scalar(x, with_min_and_max=False):
     """

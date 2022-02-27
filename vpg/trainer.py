@@ -2,7 +2,7 @@ from distutils.command.config import config
 import gym
 import torch
 import numpy as np
-from agent import VPGAgent, VPGBuffer
+from agent import VPGAgent
 from processor import InputProcessor
 from torch.distributions import Distribution
 from torch.optim import Adam
@@ -14,6 +14,7 @@ from sampler import Sampler
 from mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg_grads
 from mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
 import random
+from buffer import VPGBuffer
 
 
 class Trainer:
@@ -28,7 +29,7 @@ class Trainer:
         self.agent:nn.Module=VPGAgent(params)
         sync_params(self.agent.actor)
         self.buffer=VPGBuffer(params)
-        self.input_processor=InputProcessor()
+        self.input_processor=InputProcessor(params)
         self.lr=params["lr"]
         self.actor_optim=Adam(self.agent.actor.parameters(),self.lr)
         self.metrics=Metrics(
@@ -39,7 +40,7 @@ class Trainer:
                 "sample_time",
                 "learn_time",
             ],
-            capacity=self.params["metric_capacity"]
+            capacities=self.params["metric_capacity"]
         )
         self.timer=Timer()
 
@@ -64,10 +65,12 @@ class Trainer:
         # optimize 
         ## get batch of data from replay buffer
         data=self.buffer.get_data()
-        states,actions,rt_vals=self.input_processor.process(data)
+        states,actions,rt_vals,_=self.input_processor.process(data)
         ## calculate loss
         dists:Distribution=self.agent.actor(states)
-        loss=torch.mean(-dists.log_prob(actions)*rt_vals)
+        logprobs=dists.log_prob(actions)
+        loss=torch.mean(-logprobs*rt_vals)
+        entropy=dists.entropy().mean().item()
         ## zero gradients
         self.actor_optim.zero_grad()
         ## backward
@@ -75,23 +78,30 @@ class Trainer:
         mpi_avg_grads(self.agent.actor)
         ## step optimizer
         self.actor_optim.step()
+        # todo for debug? if delta loss increases then lr is too large?
+        # kl divergence should be small.
+        with torch.no_grad():
+            new_dists=self.agent.actor(states)
+            new_logprobs=new_dists.log_prob(actions)
+            new_loss=torch.mean(-new_logprobs*rt_vals)
+            delta_loss=new_loss.item()-loss.item() 
+            kl_div=(logprobs-new_logprobs).mean().item()
+        
         self.metrics.add("learn_time",self.timer.time("sample_e"))
         self.metrics.add("train_time",self.timer.time("step_s"))
         if self.iter%self.params["log_freq"]==0:
-            # max_val=self.metrics.max("rt_val")
-            mean_val=self.metrics.mean("rt_val")
-            # min_val=self.metrics.min("rt_val")
-            # max_len=self.metrics.max("trajectory_len")
-            # mean_len=self.metrics.mean("trajectory_len")
-            # min_len=self.metrics.min("trajectory_len")
-            # train_time=self.metrics.mean("train_time")
-            # sample_time=self.metrics.mean("sample_time")
-            # learn_time=self.metrics.mean("learn_time")
+            mean_val,std_val,max_val,min_val=self.metrics.stat("rt_val",True)
+            mean_len,std_len,max_len,min_len=self.metrics.stat("trajectory_len",True)
+            train_time=self.metrics.mean("train_time")
+            sample_time=self.metrics.mean("sample_time")
+            learn_time=self.metrics.mean("learn_time")
             
-            self.logger.info(f"<ITER {self.iter} {mean_val}>")
-                            #  f"val(max,mean,min):({max_val:.2f},{mean_val:.2f},{min_val:.2f})    "
-                            #  f"len(max,mean,min):({max_len:.2f},{mean_len:.2f},{min_len:.2f})    "
-                            #  f"time(train,learn,sample):({train_time:.2f},{learn_time:.2f},{sample_time:.2f})")
+            loss=loss.item()
+            self.logger.info(f"<ITER {self.iter}>"
+                             f"val(mean,std,max,min):({mean_val:.2f},{std_val:.2f},{max_val:.2f},{min_val:.2f})    "
+                             f"len(mean,std,max,min):({mean_len:.2f},{std_len:.2f},{max_len:.2f},{min_len:.2f})    "
+                             f"loss:{loss:.6e} entropy:{entropy:.6e} kl_div:{kl_div:.6e} delta_loss:{delta_loss:.6e} "
+                             f"time(train,learn,sample):({train_time:.2f},{learn_time:.2f},{sample_time:.2f})")
         
     def train(self):
         s_iter=1

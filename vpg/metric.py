@@ -1,7 +1,7 @@
 from argparse import _AppendAction
 import numpy as np
 import time
-from mpi_tools import mpi_min,mpi_max,mpi_avg,proc_id
+from mpi_tools import mpi_min,mpi_max,mpi_mean,proc_id,mpi_statistics_scalar
 
 class Metric:
     def __init__(self,name,capacity):
@@ -19,8 +19,8 @@ class Metric:
             self.values[self.index]=value
             self.index+=1
             
-    def mean(self):
-        v=np.mean(self.values)
+    def mean(self):  
+        v=mpi_mean(self.values)
         return v
     
     def max(self):
@@ -29,11 +29,21 @@ class Metric:
     def min(self):
         return mpi_min(self.values)
     
+    def stat(self,with_min_and_max=False):
+        return mpi_statistics_scalar(self.values,with_min_and_max)
+    
+    def value(self):
+        index=(self.index-1+self.capacity)%self.capacity
+        return self.values[index]
+    
     add=append
     
 class Metrics:
-    def __init__(self,names,capacity):
-        self.metrics={name:Metric(name,capacity) for name in names}
+    def __init__(self,names,capacities):
+        if type(capacities)==int:
+            capacities=len(names)*[capacities]
+        assert len(names)==len(capacities)
+        self.metrics={name:Metric(name,capacity) for name,capacity in zip(names,capacities)}
         
     def append(self,name,value):
         self.metrics[name].append(value)
@@ -46,6 +56,12 @@ class Metrics:
     
     def max(self,name):
         return self.metrics[name].max()
+    
+    def stat(self,name,with_min_and_max=False):
+        return self.metrics[name].stat(with_min_and_max)
+    
+    def value(self,name):
+        return self.metrics[name].value()
     
     add=append
         
