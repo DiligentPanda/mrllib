@@ -37,3 +37,7 @@ class Logger:
     def debug(self,*args):
         if proc_id()==0:
             self.logger.debug(*args)
+            
+    def warn(self,*args):
+        if proc_id()==0:
+            self.logger.warn(*args)

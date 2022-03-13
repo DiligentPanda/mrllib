@@ -1,0 +1,30 @@
+exp_fd: "exps/halfcheetah_v3_vpg"
+algo: "vpg" # "ppo"
+env_name: 'HalfCheetah-v3'
+batch_size: 4096
+log_fp: # set by config
+rnd_seed: 0
+total_iters: 50
+load_ckpt: null
+mlp_sizes:
+ - 64
+ - 64
+n_values: 1
+metric_capacity: 1
+buffer_capacity: 5000
+gamma: 0.99
+log_freq: 1
+ckpt_freq: 1
+n_cpus: 4
+normalize_mean: True
+normalize_std: True
+use_adv: True
+train_v_iters: 80
+plr: 0.0003
+vlr: 0.001
+gpus: 
+  - 0
+use_gae: True
+lam: 0.97
+max_ep_len: 1000
+log_std: -0.5

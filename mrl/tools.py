@@ -1,10 +1,18 @@
 import scipy.signal
 import numpy as np
 import torch
+from mpi_tools import proc_id
+
+def get_gpu(gpus):
+    idx=proc_id()%len(gpus)
+    gpu=gpus[idx]
+    device=torch.device(f"cuda:{gpu}")
+    return device
 
 def to_tensor(arr):
     if isinstance(arr,np.ndarray):
-        arr=arr.astype(np.float32)
+        if arr.dtype==np.float64:
+            arr=arr.astype(np.float32)
         return torch.from_numpy(arr),np.ndarray
     elif isinstance(arr,torch.Tensor):
         arr=arr.float()

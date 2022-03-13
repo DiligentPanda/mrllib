@@ -21,7 +21,9 @@ class Config:
         self.timestamp=time.strftime("%y-%m-%d-%H-%M-%S",time.localtime())
         self.params["log_fp"]=os.path.join(exp_fd,f"log_{self.timestamp}.txt")
         assert self.params["batch_size"]%self.params["n_cpus"]==0
-        self.params["batch_size_pc"]=self.params["batch_size"]/self.params["n_cpus"]
+        self.params["batch_size_pc"]=int(self.params["batch_size"]/self.params["n_cpus"])
+        self.params["train_p_batch_pc"]=int(self.params["train_p_batch"]/self.params["n_cpus"])
+        self.params["n_gpus"]=len(self.params["gpus"])
     
     def dump(self):
         # dump config

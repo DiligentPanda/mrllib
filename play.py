@@ -1,5 +1,8 @@
 import gym
+env = gym.make('HalfCheetah-v2')
 env = gym.make('CartPole-v0')
+print(env.action_space.n)
+print(env.observation_space.shape)
 for i_episode in range(20):
     observation = env.reset()
     for t in range(100):

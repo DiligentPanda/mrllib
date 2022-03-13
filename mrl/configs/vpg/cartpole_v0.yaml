@@ -1,0 +1,34 @@
+exp_fd: "exps/cartpole_vpg"
+algo: "vpg" # "vpg","ppo"
+env_name: 'CartPole-v0'
+batch_size: 1024
+log_fp: # set by config
+rnd_seed: 0
+total_iters: 10000
+load_ckpt: null
+mlp_sizes:
+ - 64
+ - 64
+n_values: 1
+metric_capacity: 10
+buffer_capacity: 1200
+gamma: 0.999
+log_freq: 1
+ckpt_freq: 1000
+n_cpus: 4
+normalize_mean: True
+normalize_std: True
+use_adv: True
+train_v_iters: 80
+plr: 0.001
+vlr: 0.001
+gpus: 
+  - 0
+use_gae: True
+lam: 0.97
+max_ep_len: 100000
+log_std: null
+train_p_iters: 8 # ppo
+train_p_batch: 64  # ppo
+upper_ratio: 1.2 # ppo
+lower_ratio: 0.8 # ppo
